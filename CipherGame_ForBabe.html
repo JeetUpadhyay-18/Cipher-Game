@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIPHER — Number Deduction Game</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0c0b;
+    --bg2: #131210;
+    --bg3: #1a1815;
+    --surface: #1f1d19;
+    --surface2: #252320;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --gold: #c9a84c;
+    --gold-dim: #8a6e2e;
+    --gold-glow: rgba(201,168,76,0.15);
+    --text: #e8e0d0;
+    --text2: #a09880;
+    --text3: #5a5448;
+    --green: #6aad7e;
+    --green-dim: rgba(106,173,126,0.12);
+    --red: #c96a6a;
+    --red-dim: rgba(201,106,106,0.12);
+    --amber: #d4935a;
+    --radius: 3px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* Subtle noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* ---- TOP BAR ---- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    letter-spacing: 6px;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+
+  .logo span {
+    font-style: italic;
+    color: var(--text2);
+    font-size: 13px;
+    letter-spacing: 3px;
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    margin-top: 1px;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .attempt-counter {
+    text-align: right;
+  }
+
+  .attempt-counter .label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text3);
+    text-transform: uppercase;
+  }
+
+  .attempt-counter .count {
+    font-size: 24px;
+    font-weight: 300;
+    color: var(--text2);
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  .attempt-counter .count span {
+    color: var(--text3);
+    font-size: 14px;
+  }
+
+  /* ---- MUSIC CONTROL ---- */
+  .music-btn {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .music-btn:hover {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+    background: var(--gold-glow);
+  }
+
+  .music-btn.playing {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+  }
+
+  .music-btn svg { width: 16px; height: 16px; }
+
+  .music-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 16px;
+  }
+
+  .music-bars .bar {
+    width: 2px;
+    background: var(--gold);
+    border-radius: 1px;
+    animation: none;
+  }
+
+  .music-btn.playing .bar:nth-child(1) { animation: bounce 0.8s ease-in-out infinite; }
+  .music-btn.playing .bar:nth-child(2) { animation: bounce 0.8s ease-in-out 0.15s infinite; }
+  .music-btn.playing .bar:nth-child(3) { animation: bounce 0.8s ease-in-out 0.3s infinite; }
+  .music-btn.playing .bar:nth-child(4) { animation: bounce 0.8s ease-in-out 0.45s infinite; }
+
+  .music-btn:not(.playing) .bar { height: 8px; }
+
+  @keyframes bounce {
+    0%, 100% { height: 4px; }
+    50% { height: 14px; }
+  }
+
+  /* ---- MAIN LAYOUT ---- */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---- LEFT: GAME AREA ---- */
+  .game-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+  }
+
+  /* Decorative vertical line */
+  .game-area::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 10%;
+    height: 80%;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--border), var(--border), transparent);
+  }
+
+  .status-badge {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 48px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .status-badge::before, .status-badge::after {
+    content: '';
+    width: 30px;
+    height: 1px;
+    background: var(--border2);
+  }
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--green);
+    display: inline-block;
+    margin-right: 6px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ---- INPUT BOXES ---- */
+  .input-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .digit-box {
+    width: 72px;
+    height: 88px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    font-family: 'DM Serif Display', serif;
+    font-size: 40px;
+    color: var(--text);
+    text-align: center;
+    caret-color: var(--gold);
+    outline: none;
+    transition: all 0.2s;
+    appearance: none;
+    -moz-appearance: textfield;
+  }
+
+  .digit-box::-webkit-outer-spin-button,
+  .digit-box::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .digit-box:focus {
+    border-color: var(--gold-dim);
+    background: var(--surface2);
+    box-shadow: 0 0 0 1px var(--gold-dim), 0 0 20px var(--gold-glow);
+  }
+
+  .digit-box.filled {
+    color: var(--gold);
+    border-color: rgba(201,168,76,0.3);
+  }
+
+  .digit-box.shake {
+    animation: shake 0.4s ease;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  /* ---- SUBMIT BUTTON ---- */
+  .submit-btn {
+    width: 312px;
+    height: 48px;
+    background: none;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .submit-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gold-glow);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+
+  .submit-btn:hover::before { transform: scaleX(1); }
+  .submit-btn:hover { border-color: var(--gold); letter-spacing: 6px; }
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .submit-btn span { position: relative; z-index: 1; }
+
+  /* ---- FEEDBACK AREA ---- */
+  .feedback {
+    margin-top: 36px;
+    text-align: center;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .feedback-line {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text3);
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: all 0.4s ease;
+  }
+
+  .feedback-line.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .feedback-pills {
+    display: flex;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: all 0.4s ease 0.1s;
+  }
+
+  .feedback-pills.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .pill {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+
+  .pill.digits {
+    background: var(--green-dim);
+    border-color: rgba(106,173,126,0.3);
+    color: var(--green);
+  }
+
+  .pill.positions {
+    background: rgba(212,147,90,0.1);
+    border-color: rgba(212,147,90,0.3);
+    color: var(--amber);
+  }
+
+  /* ---- WIN STATE ---- */
+  .win-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(13,12,11,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+
+  .win-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .win-content {
+    text-align: center;
+    transform: translateY(20px);
+    transition: transform 0.6s ease 0.2s;
+  }
+
+  .win-overlay.show .win-content {
+    transform: translateY(0);
+  }
+
+  .win-label {
+    font-size: 9px;
+    letter-spacing: 5px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .win-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 80px;
+    color: var(--gold);
+    letter-spacing: 20px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .win-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 20px;
+    color: var(--text2);
+    margin-bottom: 48px;
+  }
+
+  .win-attempts {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+
+  .win-attempts strong {
+    color: var(--text2);
+    font-weight: 400;
+  }
+
+  .play-again-btn {
+    background: none;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 14px 40px;
+    border-radius: var(--radius);
+    transition: all 0.25s;
+  }
+
+  .play-again-btn:hover {
+    background: var(--gold-glow);
+    border-color: var(--gold);
+    letter-spacing: 6px;
+  }
+
+  /* ---- RIGHT: HISTORY PANEL ---- */
+  .history-panel {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg2);
+  }
+
+  .panel-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--text3);
+    text-transform: uppercase;
+  }
+
+  .panel-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  .history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scroll-behavior: smooth;
+  }
+
+  .history-list::-webkit-scrollbar { width: 3px; }
+  .history-list::-webkit-scrollbar-track { background: transparent; }
+  .history-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .history-empty {
+    text-align: center;
+    padding: 40px 20px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--text3);
+    line-height: 1.7;
+  }
+
+  .history-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideIn 0.3s ease;
+    opacity: 0;
+    animation-fill-mode: forwards;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .history-num {
+    font-size: 9px;
+    color: var(--text3);
+    min-width: 20px;
+    text-align: right;
+    font-weight: 300;
+  }
+
+  .history-digits {
+    display: flex;
+    gap: 5px;
+    flex: 1;
+  }
+
+  .history-digit {
+    width: 30px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--text2);
+    background: var(--bg3);
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+
+  .history-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    min-width: 60px;
+  }
+
+  .meta-tag {
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  .meta-tag.d {
+    background: var(--green-dim);
+    color: var(--green);
+    border: 1px solid rgba(106,173,126,0.2);
+  }
+
+  .meta-tag.p {
+    background: rgba(212,147,90,0.1);
+    color: var(--amber);
+    border: 1px solid rgba(212,147,90,0.2);
+  }
+
+  /* Separator line in history */
+  .history-divider {
+    text-align: center;
+    font-size: 8px;
+    letter-spacing: 3px;
+    color: var(--text3);
+    text-transform: uppercase;
+    position: relative;
+    padding: 4px 0;
+  }
+
+  .history-divider::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .history-divider span {
+    background: var(--bg2);
+    padding: 0 8px;
+    position: relative;
+  }
+
+  /* ---- NEW GAME BTN in panel ---- */
+  .new-game-panel {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .new-game-panel button {
+    width: 100%;
+    padding: 10px;
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+  }
+
+  .new-game-panel button:hover {
+    border-color: var(--red);
+    color: var(--red);
+    background: var(--red-dim);
+  }
+
+  /* ---- DECORATIVE CORNER ---- */
+  .corner-deco {
+    position: fixed;
+    bottom: 24px;
+    left: 32px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  /* ---- INTRO STATE ---- */
+  .intro-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    transition: opacity 0.8s ease;
+  }
+
+  .intro-screen.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .intro-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 56px;
+    color: var(--gold);
+    letter-spacing: 16px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    animation: fadeUp 0.8s ease forwards;
+    opacity: 0;
+  }
+
+  .intro-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 18px;
+    color: var(--text2);
+    margin-bottom: 60px;
+    animation: fadeUp 0.8s ease 0.2s forwards;
+    opacity: 0;
+  }
+
+  .intro-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 56px;
+    animation: fadeUp 0.8s ease 0.4s forwards;
+    opacity: 0;
+  }
+
+  .intro-rule {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--text2);
+  }
+
+  .rule-num {
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--border2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: var(--text3);
+    flex-shrink: 0;
+  }
+
+  .intro-start-btn {
+    background: none;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 16px 52px;
+    border-radius: var(--radius);
+    transition: all 0.3s;
+    animation: fadeUp 0.8s ease 0.6s forwards;
+    opacity: 0;
+  }
+
+  .intro-start-btn:hover {
+    background: var(--gold-glow);
+    border-color: var(--gold);
+    letter-spacing: 8px;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hint-text {
+    margin-top: 16px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text3);
+    animation: fadeUp 0.8s ease 0.8s forwards;
+    opacity: 0;
+  }
+  /* ===== Adding Scratch Pad =======  */
+  .scratchpad {
+    position: fixed;
+    bottom: 24px;
+    right: 344px;
+    width: 200px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .scratchpad.minimized {
+    transform: translateY(calc(100% - 32px));
+    width: 120px;
+  }
+  .scratchpad-header {
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--text3);
+    text-transform: uppercase;
+  }
+
+  .scratchpad-header:hover { color: var(--gold); }
+  .scratchpad textarea {
+    background: transparent;
+    border: none;
+    color: var(--text2);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 12px;
+    resize: none;
+    height: 140px;
+    outline: none;
+    line-height: 1.6;
+  }
+  .scratchpad textarea::placeholder { color: var(--text3); opacity: 0.5; }
+
+</style>
+</head>
+<body>
+
+<!-- INTRO SCREEN -->
+<div class="intro-screen" id="introScreen">
+  <div class="intro-title">Cipher</div>
+  <div class="intro-sub">A quiet game of deduction</div>
+  <div class="intro-rules">
+    <div class="intro-rule">
+      <div class="rule-num">I</div>
+      A secret 4-digit number has been chosen — all digits unique.
+    </div>
+    <div class="intro-rule">
+      <div class="rule-num">II</div>
+      Enter your guess. Learn how many digits are correct, and how many are in the right position.
+    </div>
+    <div class="intro-rule">
+      <div class="rule-num">III</div>
+      The number is never revealed until you crack it entirely.
+    </div>
+    <div class="intro-rule">
+      <div class="rule-num">IV</div>
+      No limits. No timer. Only your intuition.
+    </div>
+  </div>
+  <button class="intro-start-btn" id="startBtn">Begin</button>
+  <div class="hint-text">Press Enter or click Begin</div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    Cipher
+    <span>number deduction</span>
+  </div>
+  <div class="topbar-right">
+    <div class="attempt-counter">
+      <div class="label">Attempts</div>
+      <div class="count" id="attemptCount">0 <span>/ ∞</span></div>
+    </div>
+    <button class="music-btn" id="musicBtn" title="Toggle music">
+      <div class="music-bars">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+    </button>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main">
+
+  <!-- GAME AREA -->
+  <div class="game-area">
+    <div class="status-badge">
+      <span class="status-dot"></span>
+      Awaiting your guess
+    </div>
+
+    <div class="input-group" id="inputGroup">
+      <input class="digit-box" id="d0" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input class="digit-box" id="d1" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input class="digit-box" id="d2" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input class="digit-box" id="d3" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+    </div>
+
+    <button class="submit-btn" id="submitBtn" disabled>
+      <span>Decode</span>
+    </button>
+
+    <div class="feedback" id="feedback">
+      <div class="feedback-line" id="feedbackLine">—</div>
+      <div class="feedback-pills" id="feedbackPills">
+        <div class="pill digits" id="pillDigits">0 / 4 digits</div>
+        <div class="pill positions" id="pillPos">0 / 4 positions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY PANEL -->
+  <div class="history-panel">
+    <div class="panel-header">
+      <div class="panel-title">Trace Log</div>
+      <div class="panel-sub">your deductions, recorded</div>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty" id="historyEmpty">
+        Your guesses will<br>appear here.<br><br>
+        <span style="font-size:12px; letter-spacing:1px;">Trust the process.</span>
+      </div>
+    </div>
+    <div class="new-game-panel">
+      <button id="newGameBtn">↺ &nbsp; New Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- WIN OVERLAY -->
+<div class="win-overlay" id="winOverlay">
+  <div class="win-content">
+    <div class="win-label">You cracked it</div>
+    <div class="win-number" id="winNumber">——</div>
+    <div class="win-sub">The cipher has been broken.</div>
+    <div class="win-attempts" id="winAttempts">Solved in <strong>— attempts</strong></div>
+    <button class="play-again-btn" id="playAgainBtn">Play Again</button>
+  </div>
+</div>
+
+<div class="corner-deco">♩ a quiet game of numbers</div>
+
+<!-- Adding a scratch Pad body -->
+<div class="scratchpad" id="scratchpad">
+  <div class="scratchpad-header" id="scratchToggle">
+    <span>Scratchpad</span>
+    <span id="scratchIcon">−</span>
+  </div>
+  <textarea placeholder="Draft digits here..."></textarea>
+</div>
+
+<!-- AUDIO: Jazz via Web Audio API (generative ambient jazz-like tones) -->
+<script>
+(function() {
+
+  // ============ AUDIO ENGINE (Generative ambient jazz) ============
+  let audioCtx = null;
+  let isPlaying = false;
+  let masterGain = null;
+  let scheduledNodes = [];
+  let jazzInterval = null;
+
+  const musicBtn = document.getElementById('musicBtn');
+
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0;
+    masterGain.connect(audioCtx.destination);
+  }
+
+  function playNote(freq, time, duration, vol = 0.08, type = 'sine') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+
+    filter.type = 'lowpass';
+    filter.frequency.value = 1200;
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, time);
+
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(vol, time + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+    osc.start(time);
+    osc.stop(time + duration + 0.1);
+  }
+
+  // Jazz chord voicings (frequencies)
+  const jazzChords = [
+    // Cmaj7
+    [261.63, 329.63, 392.00, 493.88],
+    // Am7
+    [220.00, 261.63, 329.63, 392.00],
+    // Dm7
+    [146.83, 220.00, 261.63, 329.63],
+    // G7
+    [196.00, 246.94, 293.66, 349.23],
+    // Fmaj7
+    [174.61, 220.00, 261.63, 329.63],
+    // Em7b5
+    [164.81, 220.00, 261.63, 311.13],
+    // A7
+    [220.00, 277.18, 329.63, 415.30],
+  ];
+
+  const walkingBassNotes = [65.41, 73.42, 82.41, 87.31, 98.00, 110.00, 123.47, 130.81, 146.83, 164.81, 174.61, 196.00];
+
+  let chordIndex = 0;
+  let beatTime = 0;
+
+  function scheduleJazzBar() {
+    if (!audioCtx || !isPlaying) return;
+    const now = audioCtx.currentTime;
+    if (beatTime < now) beatTime = now;
+
+    const tempo = 0.55; // seconds per beat
+    const chord = jazzChords[chordIndex % jazzChords.length];
+    chordIndex++;
+
+    // Chord voicing — arpeggiated gently
+    chord.forEach((freq, i) => {
+      playNote(freq * 2, beatTime + i * 0.04, tempo * 3.8, 0.04, 'sine');
+    });
+
+    // Walking bass — 4 beats
+    for (let b = 0; b < 4; b++) {
+      const bassFreq = walkingBassNotes[Math.floor(Math.random() * walkingBassNotes.length)];
+      playNote(bassFreq, beatTime + b * tempo, tempo * 0.7, 0.12, 'triangle');
+    }
+
+    // Brush hi-hat simulation (subtle noise-like)
+    for (let b = 0; b < 8; b++) {
+      playHat(beatTime + b * (tempo / 2), b % 2 === 0 ? 0.03 : 0.015);
+    }
+
+    beatTime += tempo * 4;
+  }
+
+  function playHat(time, vol) {
+    const bufferSize = audioCtx.sampleRate * 0.04;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 8000;
+
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(vol, time + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+
+    src.start(time);
+    src.stop(time + 0.05);
+  }
+
+  function startJazz() {
+    if (!audioCtx) initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    isPlaying = true;
+    beatTime = audioCtx.currentTime + 0.1;
+    masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+    masterGain.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 1.5);
+    scheduleJazzBar();
+    jazzInterval = setInterval(() => {
+      if (isPlaying) scheduleJazzBar();
+    }, 1800);
+  }
+
+  function stopJazz() {
+    isPlaying = false;
+    clearInterval(jazzInterval);
+    if (masterGain && audioCtx) {
+      masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1.5);
+    }
+  }
+
+  musicBtn.addEventListener('click', () => {
+    if (isPlaying) {
+      stopJazz();
+      musicBtn.classList.remove('playing');
+    } else {
+      startJazz();
+      musicBtn.classList.add('playing');
+    }
+  });
+
+  // ============ GAME LOGIC ============
+  let secretNumber = [];
+  let attempts = 0;
+  let gameOver = false;
+
+  function generateSecret() {
+    const digits = [];
+    const pool = [0,1,2,3,4,5,6,7,8,9];
+    while (digits.length < 4) {
+      const idx = Math.floor(Math.random() * pool.length);
+      digits.push(pool.splice(idx, 1)[0]);
+    }
+    return digits;
+  }
+
+  function initGame() {
+    secretNumber = generateSecret();
+    attempts = 0;
+    gameOver = false;
+    document.getElementById('attemptCount').innerHTML = '0 <span>/ ∞</span>';
+    document.getElementById('historyList').innerHTML = '<div class="history-empty" id="historyEmpty">Your guesses will<br>appear here.<br><br><span style="font-size:12px; letter-spacing:1px;">Trust the process.</span></div>';
+    clearInputs();
+    hideFeedback();
+    document.getElementById('winOverlay').classList.remove('show');
+    document.getElementById('d0').focus();
+  }
+
+  function clearInputs() {
+    ['d0','d1','d2','d3'].forEach(id => {
+      const el = document.getElementById(id);
+      el.value = '';
+      el.classList.remove('filled');
+    });
+    document.getElementById('submitBtn').disabled = true;
+  }
+
+  function hideFeedback() {
+    document.getElementById('feedbackLine').classList.remove('visible');
+    document.getElementById('feedbackPills').classList.remove('visible');
+  }
+
+  // ---- Input handling ----
+  const boxes = [document.getElementById('d0'), document.getElementById('d1'), document.getElementById('d2'), document.getElementById('d3')];
+
+  boxes.forEach((box, i) => {
+    box.addEventListener('input', (e) => {
+      let val = e.target.value.replace(/[^0-9]/g, '');
+      if (val.length > 1) val = val.slice(-1);
+      box.value = val;
+      box.classList.toggle('filled', val !== '');
+
+      if (val !== '' && i < 3) {
+        boxes[i + 1].focus();
+      }
+      checkAllFilled();
+    });
+
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && box.value === '' && i > 0) {
+        boxes[i - 1].focus();
+        boxes[i - 1].value = '';
+        boxes[i - 1].classList.remove('filled');
+        checkAllFilled();
+      }
+      if (e.key === 'Enter') {
+        if (!document.getElementById('submitBtn').disabled) submitGuess();
+      }
+      // Prevent non-numeric
+      if (!/[0-9]/.test(e.key) && !['Backspace','Tab','ArrowLeft','ArrowRight','Delete','Enter'].includes(e.key)) {
+        e.preventDefault();
+      }
+    });
+
+    box.addEventListener('click', () => box.select());
+  });
+
+  function checkAllFilled() {
+    const all = boxes.every(b => b.value !== '');
+    document.getElementById('submitBtn').disabled = !all;
+  }
+
+  function submitGuess() {
+    if (gameOver) return;
+
+    const guess = boxes.map(b => parseInt(b.value));
+
+    // Check for duplicates in guess
+    if (new Set(guess).size !== 4) {
+      boxes.forEach(b => {
+        b.classList.add('shake');
+        setTimeout(() => b.classList.remove('shake'), 500);
+      });
+      showFeedback('Digits must all be unique', null, null, true);
+      return;
+    }
+
+    attempts++;
+    document.getElementById('attemptCount').innerHTML = `${attempts} <span>/ ∞</span>`;
+
+    // Evaluate
+    let correctDigits = 0;
+    let correctPositions = 0;
+
+    for (let i = 0; i < 4; i++) {
+      if (secretNumber.includes(guess[i])) correctDigits++;
+      if (secretNumber[i] === guess[i]) correctPositions++;
+    }
+
+    // Remove empty state
+    const emptyEl = document.getElementById('historyEmpty');
+    if (emptyEl) emptyEl.remove();
+
+    // Add to history (newest at top)
+    addHistoryItem(guess, correctDigits, correctPositions, attempts);
+
+    if (correctPositions === 4) {
+      // WIN
+      setTimeout(() => triggerWin(guess), 500);
+    } else {
+      showFeedback('result', correctDigits, correctPositions, false);
+      clearInputs();
+      boxes[0].focus();
+    }
+  }
+
+  function showFeedback(type, digits, positions, isError) {
+    const line = document.getElementById('feedbackLine');
+    const pills = document.getElementById('feedbackPills');
+
+    if (isError) {
+      line.textContent = type;
+      line.style.color = 'var(--red)';
+      pills.classList.remove('visible');
+    } else {
+      if (digits === 0 && positions === 0) {
+        line.textContent = 'no matches — recalibrate';
+        line.style.color = 'var(--text3)';
+      } else if (positions === 4) {
+        line.textContent = 'perfect — cipher broken';
+        line.style.color = 'var(--gold)';
+      } else {
+        line.textContent = 'partial match detected';
+        line.style.color = 'var(--text3)';
+      }
+      document.getElementById('pillDigits').textContent = `${digits} / 4 digits`;
+      document.getElementById('pillPos').textContent = `${positions} / 4 positions`;
+      pills.classList.add('visible');
+    }
+
+    line.classList.remove('visible');
+    void line.offsetWidth;
+    line.classList.add('visible');
+  }
+
+  function addHistoryItem(guess, digits, positions, num) {
+    const list = document.getElementById('historyList');
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.style.animationDelay = '0s';
+
+    item.innerHTML = `
+      <div class="history-num">${num}</div>
+      <div class="history-digits">
+        ${guess.map(d => `<div class="history-digit">${d}</div>`).join('')}
+      </div>
+      <div class="history-meta">
+        <div class="meta-tag d">${digits}/4 d</div>
+        <div class="meta-tag p">${positions}/4 p</div>
+      </div>
+    `;
+
+    list.insertBefore(item, list.firstChild);
+  }
+
+  function triggerWin(guess) {
+    gameOver = true;
+    document.getElementById('winNumber').textContent = secretNumber.join(' ');
+    document.getElementById('winAttempts').innerHTML = `Solved in <strong>${attempts} attempt${attempts !== 1 ? 's' : ''}</strong>`;
+    document.getElementById('winOverlay').classList.add('show');
+
+    // Play a success arpeggio
+    if (audioCtx && isPlaying) {
+      const now = audioCtx.currentTime;
+      const winNotes = [261.63, 329.63, 392.00, 523.25, 659.25];
+      winNotes.forEach((freq, i) => {
+        playNote(freq, now + i * 0.12, 0.8, 0.1, 'sine');
+      });
+    }
+  }
+
+  const pad = document.getElementById('scratchpad');
+  const toggle = document.getElementById('scratchToggle');
+  const icon = document.getElementById('scratchIcon');
+
+  toggle.addEventListener('click', () => {
+    const isMin = pad.classList.toggle('minimized');
+    icon.textContent = isMin ? '+' : '−';
+  });
+
+  // ---- Buttons ----
+  document.getElementById('submitBtn').addEventListener('click', submitGuess);
+  document.getElementById('newGameBtn').addEventListener('click', initGame);
+  document.getElementById('playAgainBtn').addEventListener('click', initGame);
+
+  // ---- Intro screen ----
+  document.getElementById('startBtn').addEventListener('click', () => {
+    const intro = document.getElementById('introScreen');
+    intro.classList.add('fade-out');
+    setTimeout(() => {
+      intro.style.display = 'none';
+      document.getElementById('d0').focus();
+    }, 800);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !document.getElementById('introScreen').classList.contains('fade-out') && document.getElementById('introScreen').style.display !== 'none') {
+      document.getElementById('startBtn').click();
+    }
+  });
+
+  // ---- Init ----
+  initGame();
+
+})();
+</script>
+</body>
+</html>
