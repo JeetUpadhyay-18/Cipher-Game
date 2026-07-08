@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIPHER — Number Deduction Game</title>
+<meta name="description" content="Cipher — a quiet, elegant 4-digit number deduction game with generative ambient jazz.">
+<link rel="icon" href="data:,">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- INTRO SCREEN -->
+<div class="intro-screen" id="introScreen">
+  <div class="intro-title">Cipher</div>
+  <div class="intro-sub">A quiet game of deduction</div>
+  <div class="intro-rules">
+    <div class="intro-rule">
+      <div class="rule-num">I</div>
+      A secret 4-digit number has been chosen — all digits unique.
+    </div>
+    <div class="intro-rule">
+      <div class="rule-num">II</div>
+      Enter your guess. Learn how many digits are correct, and how many are in the right position.
+    </div>
+    <div class="intro-rule">
+      <div class="rule-num">III</div>
+      The number is never revealed until you crack it entirely.
+    </div>
+    <div class="intro-rule">
+      <div class="rule-num">IV</div>
+      No limits. No timer. Only your intuition.
+    </div>
+  </div>
+  <button class="intro-start-btn" id="startBtn">Begin</button>
+  <div class="hint-text">Press Enter or click Begin</div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    Cipher
+    <span>number deduction</span>
+  </div>
+  <div class="topbar-right">
+    <div class="attempt-counter">
+      <div class="label">Attempts</div>
+      <div class="count" id="attemptCount">0 <span>/ ∞</span></div>
+    </div>
+    <button class="music-btn" id="musicBtn" title="Toggle music">
+      <div class="music-bars">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+    </button>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main">
+
+  <!-- GAME AREA -->
+  <div class="game-area">
+    <div class="status-badge">
+      <span class="status-dot"></span>
+      Awaiting your guess
+    </div>
+
+    <div class="input-group" id="inputGroup">
+      <input class="digit-box" id="d0" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input class="digit-box" id="d1" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input class="digit-box" id="d2" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input class="digit-box" id="d3" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+    </div>
+
+    <button class="submit-btn" id="submitBtn" disabled>
+      <span>Decode</span>
+    </button>
+
+    <div class="feedback" id="feedback">
+      <div class="feedback-line" id="feedbackLine">—</div>
+      <div class="feedback-pills" id="feedbackPills">
+        <div class="pill digits" id="pillDigits">0 / 4 digits</div>
+        <div class="pill positions" id="pillPos">0 / 4 positions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY PANEL -->
+  <div class="history-panel">
+    <div class="panel-header">
+      <div class="panel-title">Trace Log</div>
+      <div class="panel-sub">your deductions, recorded</div>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty" id="historyEmpty">
+        Your guesses will<br>appear here.<br><br>
+        <span style="font-size:12px; letter-spacing:1px;">Trust the process.</span>
+      </div>
+    </div>
+    <div class="new-game-panel">
+      <button id="newGameBtn">↺ &nbsp; New Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- WIN OVERLAY -->
+<div class="win-overlay" id="winOverlay">
+  <div class="win-content">
+    <div class="win-label">You cracked it</div>
+    <div class="win-number" id="winNumber">——</div>
+    <div class="win-sub">The cipher has been broken.</div>
+    <div class="win-attempts" id="winAttempts">Solved in <strong>— attempts</strong></div>
+    <button class="play-again-btn" id="playAgainBtn">Play Again</button>
+  </div>
+</div>
+
+<div class="corner-deco">♩ a quiet game of numbers</div>
+
+<!-- Scratchpad -->
+<div class="scratchpad" id="scratchpad">
+  <div class="scratchpad-header" id="scratchToggle">
+    <span>Scratchpad</span>
+    <span id="scratchIcon">−</span>
+  </div>
+  <textarea placeholder="Draft digits here..."></textarea>
+</div>
+
+<!-- AUDIO + GAME LOGIC: Web Audio API generative ambient jazz + Cipher game -->
+<script src="script.js"></script>
+</body>
+</html>
