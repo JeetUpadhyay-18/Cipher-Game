@@ -1,8 +1,7 @@
-# Cipher — A Quiet Game of Deduction
+# Cipher — A Quiet Game of Deduction - Enjoy the Mind Boggling game of guess!
 
 A minimalist, elegant 4-digit number deduction game (Mastermind-style) with a moody dark theme, generative ambient jazz soundtrack, and a "trace log" of your guesses.
 
-![Cipher](assets/screenshot.png)
 
 ## 🎮 How to Play
 
