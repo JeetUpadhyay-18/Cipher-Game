@@ -19,7 +19,6 @@ A minimalist, elegant 4-digit number deduction game (Mastermind-style) with a mo
 - Clean, distraction-free single-column UI with a "trace log" side panel recording every guess
 - Ambient, generative jazz background music built entirely with the Web Audio API (no audio files)
 - Smooth intro screen, win overlay, and subtle micro-interactions (shake on invalid input, animated feedback)
-- Fully client-side — no build step, no dependencies, no backend
 
 ## 📁 Project Structure
 
@@ -32,25 +31,6 @@ A minimalist, elegant 4-digit number deduction game (Mastermind-style) with a mo
 └── assets/         # Screenshots / images (optional)
 ```
 
-## 🚀 Running Locally
-
-No build tools or dependencies required. Just open `index.html` in a modern browser:
-
-```bash
-git clone https://github.com/<your-username>/cipher-game.git
-cd cipher-game
-open index.html   # or double-click it, or serve it locally:
-python3 -m http.server 8000
-```
-
-Then visit `http://localhost:8000`.
-
-## 🌐 Deploying to GitHub Pages
-
-1. Push this repo to GitHub.
-2. Go to **Settings → Pages**.
-3. Set the source branch to `main` and the folder to `/ (root)`.
-4. Your game will be live at `https://<your-username>.github.io/cipher-game/`.
 
 ## 🛠️ Tech Stack
 
